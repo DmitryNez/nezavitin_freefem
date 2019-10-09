@@ -1,0 +1,81 @@
+int n = 75; /*Partition*/
+
+func u1 = sin(1.0); /*Dirichlet boundary condition on labelCircle*/
+func c = 2.0*(x*N.x + y*N.y)*cos(x^2 + y^2);  /*Neumann condition on labelEllipse*/
+
+int labelCircle = 1; /* label of semicircle*/
+int labelEllipse = 2; /* label of  semi-ellipse*/
+
+func uExactFunc = sin(x^2 + y^2); /*exact solution*/
+func f = -4.0*(cos(x^2+y^2) - (x^2+y^2)*sin(x^2+y^2)); /*function on the right side*/
+
+/* defenition of semicirle boundary */
+border Gamma1(t = pi/2 , 3.*pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle;
+}
+/* defenition of semi-ellipse boundary */
+border Gamma2(t = pi/2 , 3.*pi/2){
+	x = 0.5 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelEllipse;
+}
+
+mesh Th = buildmesh(Gamma1(n) + Gamma2(-n));
+plot (Th);
+
+/*defenition of the finite element space*/
+fespace Vh(Th, P1);
+Vh u, v;
+
+ /* Bilinear form definition for matrix */
+varf PoissonBilinearForm (u, v) = 
+	int2d(Th)(
+		dx(u)*dx(v) + dy(u)*dy(v)
+	) 
+	
+	 /*- int1d(Th,labelEllipse)(
+
+		dx(u)*N.x*v+dy(u)*N.y*v  // with N.x and N.y operators
+	
+	)*/
+	+ on(labelCircle , u = u1);
+
+/*vector on the rhs*/
+varf RhsLinearForm(u, v) = 
+	 int2d(Th)(f*v)
+	 + int1d(Th,labelEllipse)(
+		c*v
+	)
+	+ on(labelCircle , u = u1);
+
+
+/*matrix and vector on the rhs creation*/
+matrix A =  PoissonBilinearForm(Vh,Vh);
+real [int] B = RhsLinearForm(0, Vh);
+/*slae*/
+u[] = (A^-1) * B;
+
+
+string plotTitle = "Poisson Solution";
+
+/*Project exact solution onto FESpace*/
+Vh uExact = uExactFunc;
+Vh uErrorAbs = abs(u - uExact);
+
+
+plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+
+real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
+real uExactL2Norm = sqrt( int2d(Th)(uExact^2) );
+real uErrorRelL2Norm = uErrorL2Norm/uExactL2Norm;
+
+cout << "||uExact||_L2 = " << uExactL2Norm << endl;
+cout << "||uErrorL2Norm||_L2 = " << uErrorL2Norm << endl;
+cout << "||uErrorRelL2Norm||_L2 = " << uErrorRelL2Norm << endl;
+cout <<"4. convergence rate = "<< log(6.37E-5/1.6E-5)/log(2.) << endl; /* for 4 task (uErrorL2Norm = 6.37E-5 for n = 75 
+																			  and uErrorL2Norm = 1.6E-5 for n = 150) */
+cout <<"5. convergence rate = "<< log(0.155668/0.145108)/log(2.) << endl; /* for 5 task (uErrorL2Norm = 0.145108 for n = 75 
+																			  and uErrorL2Norm = 0.155668 for n = 150) */
