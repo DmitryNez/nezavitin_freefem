@@ -4,7 +4,7 @@ string plotTitle = "Poisson Solution";
 func u1 = sin(1.0); /*Dirichlet boundary condition on labelCircle*/
 func c = 2.0*(x*N.x + y*N.y)*cos(x^2 + y^2);  /*Neumann condition on labelEllipse*/
 
-ofstream fout("Error.txt");
+
 
 int labelCircle = 1; /* label of semicircle*/
 int labelEllipse = 2; /* label of  semi-ellipse*/
@@ -64,8 +64,10 @@ u[] = (A^-1) * B;
 
 real hmin = 0.01;
 real hmax = 0.1;
-fout << "||uErrorL2Norm||_L2" <<"    " << "||uErrorRelL2Norm||_L2 " << endl;
-for (int i = 0; i<20; i++ ){
+
+real k = 50;// number of partitions of a line segment
+
+for (int i = 0; i<10; i++){
 Th = adaptmesh(Th,u,
 	err = error,
 	nbvx = 60000,
@@ -79,6 +81,13 @@ error = error/2.0;
 Vh uExact = uExactFunc;
 Vh uErrorAbs = abs(u - uExact);
 
+ofstream fout("Values_" + i + ".txt");
+
+for(real i = 0; i <= k; i=i+1){
+
+	fout << i << " " << u(1.-i/k,0)<< endl; // start-[1,0] end-[0,0]
+
+}
 //plot(Th);
 plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
 //plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
@@ -87,7 +96,6 @@ real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
 real uExactL2Norm = sqrt( int2d(Th)(uExact^2) );
 real uErrorRelL2Norm = uErrorL2Norm/uExactL2Norm;
 
-cout << "||uExact||_L2 = " << uExactL2Norm << endl;
 
-fout <<"  "<<uErrorL2Norm  <<"                  "<< uErrorRelL2Norm << endl;
+
 }
