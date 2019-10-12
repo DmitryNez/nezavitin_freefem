@@ -1,0 +1,93 @@
+int n = 100; /*Partition*/
+string plotTitle = "Poisson Solution";
+
+func u1 = sin(1.0); /*Dirichlet boundary condition on labelCircle*/
+func c = 2.0*(x*N.x + y*N.y)*cos(x^2 + y^2);  /*Neumann condition on labelEllipse*/
+
+ofstream fout("Error.txt");
+
+int labelCircle = 1; /* label of semicircle*/
+int labelEllipse = 2; /* label of  semi-ellipse*/
+
+func uExactFunc = sin(x^2 + y^2); /*exact solution*/
+func f = -4.0*(cos(x^2+y^2) - (x^2+y^2)*sin(x^2+y^2)); /*function on the right side*/
+
+/* defenition of semicirle boundary */
+border Gamma1(t = pi/2 , 3.*pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle;
+}
+/* defenition of semi-ellipse boundary */
+border Gamma2(t = pi/2 , 3.*pi/2){
+	x = 0.5 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelEllipse;
+}
+
+mesh Th = buildmesh(Gamma1(n) + Gamma2(-n));
+plot (Th);
+
+/*defenition of the finite element space*/
+fespace Vh(Th, P1);
+Vh u, v;
+real error = 0.1;
+
+ /* Bilinear form definition for matrix */
+varf PoissonBilinearForm (u, v) = 
+	int2d(Th)(
+		dx(u)*dx(v) + dy(u)*dy(v)
+	) 
+	
+	 /*- int1d(Th,labelEllipse)(
+
+		dx(u)*N.x*v+dy(u)*N.y*v  // with N.x and N.y operators
+	
+	)*/
+	+ on(labelCircle , u = u1);
+
+/*vector on the rhs*/
+varf RhsLinearForm(u, v) = 
+	 int2d(Th)(f*v)
+	 + int1d(Th,labelEllipse)(
+		c*v
+	)
+	+ on(labelCircle , u = u1);
+
+
+/*matrix and vector on the rhs creation*/
+matrix A =  PoissonBilinearForm(Vh,Vh);
+real [int] B = RhsLinearForm(0, Vh);
+/*slae*/
+
+u[] = (A^-1) * B;
+
+real hmin = 0.01;
+real hmax = 0.1;
+fout << "||uErrorL2Norm||_L2" <<"    " << "||uErrorRelL2Norm||_L2 " << endl;
+for (int i = 0; i<20; i++ ){
+Th = adaptmesh(Th,u,
+	err = error,
+	nbvx = 60000,
+	hmin = hmin,
+	hmax = hmax,
+	iso = false
+);
+/*Project exact solution onto FESpace*/
+u=u;
+error = error/2.0;
+Vh uExact = uExactFunc;
+Vh uErrorAbs = abs(u - uExact);
+
+//plot(Th);
+plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+//plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+
+real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
+real uExactL2Norm = sqrt( int2d(Th)(uExact^2) );
+real uErrorRelL2Norm = uErrorL2Norm/uExactL2Norm;
+
+cout << "||uExact||_L2 = " << uExactL2Norm << endl;
+
+fout <<"  "<<uErrorL2Norm  <<"                  "<< uErrorRelL2Norm << endl;
+}
