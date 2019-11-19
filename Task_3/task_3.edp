@@ -1,0 +1,93 @@
+
+int n = 4;
+
+real[int, int] A(n, n);
+
+A = [
+        [-1, 9, 8, 7], 
+        [2, 7, 3, 2],
+        [3, 4, 7, -1],
+        [1, 3, 4, 1]
+    ];
+
+real[int] xExact = [71.0/6, -17.0/3, -1.0/3, 19.0/2]; 
+
+real[int] b = A * xExact;
+
+real[int] x0 = [0, 0, 0, 0]; /* first approximation */
+
+real[int] x = x0; 
+
+real[int] xPrevious = x0; /* solution on previous step */
+
+real[int] r = A * x0; /* невязка */
+r = b - r;
+real[int] rPrevious = r;
+
+real[int] rtilda = r;
+
+real rho = 1;
+real rhoPrevious = rho;
+
+real alpha = 1;
+real alphaPrevious = alpha;
+
+real omega = 1;
+real omegaPrevious = omega;
+
+real[int] v(n);
+v = 0;
+real[int] vPrevious = v;
+
+real[int] p(n);
+p = 0;
+real[int] pPrevious = p;
+
+real[int] s(n);
+real[int] t(n);
+
+real beta;
+
+func real L2norm(real[int]& u) {
+    real k = 0;
+    for(int i = 0; i < u.n; i++) {
+        k += u[i]*u[i];
+    }
+    return sqrt(k);
+}
+
+int iter = 0;
+real epsilon = 1e-3;
+real error = L2norm(r)/L2norm(b);
+while (error > epsilon) {
+
+    rho = rtilda' * rPrevious;
+    beta = (rho * alphaPrevious) / (rhoPrevious * omegaPrevious);
+
+    p = pPrevious - omegaPrevious * vPrevious;
+    p = beta * p; 
+    p = rPrevious + p;       /*p = rPrevious + beta * (pPrevious - omegaPrevious * vPrevious)*/
+    
+    v = A * p;
+    
+    alpha = rho / (rtilda' * v);
+    s = rPrevious - alpha * v;
+    t = A * s;
+    omega = (t' * s)/(t' * t);
+    x = omega * s + alpha * p;
+    x = xPrevious + x;
+    r = s - omega * t;
+    rhoPrevious = rho;
+    pPrevious = p;
+    vPrevious = v;
+    alphaPrevious = alpha;
+    xPrevious = x;
+    rPrevious = r;
+    pPrevious = p;
+    omegaPrevious = omega;
+    iter++;
+    error = L2norm(r) / L2norm(b);
+}
+cout << iter << endl;
+cout << x << endl;
+cout << xExact << endl;
