@@ -1,0 +1,81 @@
+int n = 500; /*Partition*/
+
+func u1 = sin(1.); /*Dirichlet boundary condition on labelCircle*/
+func c = 2.0 * (x * N.x + y * N.y) * cos(x^2 + y^2);  /*Neumann condition on labelEllipse*/
+
+
+int labelCircle1 = 1; /* label of semicircle from pi/2 to 3.*pi/2 */
+int labelCircle2 = 2; /* label of  semicircle from 3.pi/2 to 5.*pi/2*/
+
+func uExactFunc = sin(x^2 + y^2); /*exact solution*/
+func f = -4.0 * (cos(x^2+y^2) - (x^2+y^2) * sin(x^2+y^2)); /*function on the right side*/
+
+/* defenition of semicircle1 boundary */
+border Gamma1(t = pi/2 , 3.* pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle1;
+}
+/* defenition of semicircle2 boundary */
+border Gamma2(t = 3.* pi/2, 5.* pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle2;
+}
+
+mesh Th = buildmesh(Gamma1(n) + Gamma2(n));
+plot (Th);
+
+/*defenition of the finite element space*/
+fespace Vh(Th, P1);
+Vh u, v;
+fespace Zh(Th, P2);
+Zh uExact = uExactFunc;
+ /* Bilinear form definition for matrix */
+varf PoissonBilinearForm (u, v) = 
+	int2d(Th)(
+		dx(u) * dx(v) + dy(u) * dy(v)
+	) 
+
+	+ on(labelCircle1 , u = u1);
+
+/*vector on the rhs*/
+varf RhsLinearForm(u, v) = 
+	 int2d(Th)(f*v)
+/*	 + int1d(Th,labelCircle2)(
+		c*v)*/
+    + int1d(Th,labelCircle2)(
+	 	dx(uExact) * N.x * v + dy(uExact) * N.y * v
+	 )
+
+	
+	+ on(labelCircle1 , u = u1);
+
+
+/*matrix and vector on the rhs creation*/
+matrix A =  PoissonBilinearForm(Vh,Vh);
+real [int] B = RhsLinearForm(0, Vh);
+/*slae*/
+u[] = (A^-1) * B;
+
+
+string plotTitle = "Poisson Solution";
+
+/*Project exact solution onto FESpace*/
+
+Vh uErrorAbs = abs(u - uExact);
+
+
+plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+
+real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
+real uExactL2Norm = sqrt( int2d(Th)(uExact^2) );
+real uErrorRelL2Norm = uErrorL2Norm/uExactL2Norm;
+
+/*real convergence = log(0.000233844/6.09122e-05)/log(2.);
+cout <<  "convergence rate = " << convergence << endl;*/
+
+cout << "||uExact||_L2 = " << uExactL2Norm << endl;
+cout << "||uErrorL2Norm||_L2 = " << uErrorL2Norm << endl;
+cout << "||uErrorRelL2Norm||_L2 = " << uErrorRelL2Norm << endl;
