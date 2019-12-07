@@ -39,13 +39,13 @@ solve Poisson(u,v) =
 	- int2d(Th)(
  		f*v
  	)
-	- int1d(Th,labelCircle2)(
+/*	- int1d(Th,labelCircle2)(
 		c*v
-	)
-/* - int1d(Th,labelCircle2)(
+	)*/
+ - int1d(Th,labelCircle2)(
 	 	dx(uExact) * N.x * v + dy(uExact) * N.y * v
 	 )
-*/
+
 	+ on(labelCircle1 , u = u1);
 
 
@@ -53,7 +53,14 @@ string plotTitle = "Poisson Solution";
 
 real hmin = 0.01;
 real hmax = 0.1;
+
+
 real k = 50;// number of partitions of a line segment
+
+real x0 = -1; // start x-coord
+real y0 = -1; // start y-coord
+real x1 = 1; // end x-coord
+real y1 = 1; // end y-coord
 
 //plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
 
@@ -65,22 +72,25 @@ Vh uErrorAbs = abs(u - uExact);
 error = error/2.0;
 ofstream fout("Values_" + i + ".txt");
 
-for(real i = 0; i <= k; i=i+1){
-
-	fout << i << " " << u(1.-i/k,0)<< endl; // start-[1,0] end-[0,0]
-
+for(real j = 0; j <= k; j=j+1){
+	{
+		fout << j << " " << u(x0 + (x1-x0)*j/k, y0 + (y1-y0)*j/k)<< endl; // start-[1,0] end-[0,0]
+	}
 }
+
 plot(Th);
+
 //plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
-//plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);*/
+//plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
 
 real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
 cout << "||uErrorL2Norm||_L2 = " << uErrorL2Norm << endl;
-}
 
+}
 int numBoun = Th.nbe;//the number of boundary element in Th
 int Border = labelCircle2;
 ofstream File("data.txt");
+
 for( int i = 0; i < numBoun; ++i ){
     if (Th.be(i).label == Border) { // if boundary element located on the our border then we write coord
         real xm = (Th.be(i)[0].x + Th.be(i)[1].x)/2;
