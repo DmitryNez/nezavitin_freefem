@@ -23,7 +23,7 @@ border Gamma2(t = 3.* pi/2, 5.* pi/2){
  	label = labelCircle2;
 }
 
-mesh Th = buildmesh(Gamma1(n) + Gamma2(n/2));
+mesh Th = buildmesh(Gamma1(n) + Gamma2(n));
 
 real error = 0.01;
 
@@ -64,12 +64,38 @@ real y1 = 1; // end y-coord
 
 //plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
 
+
+
 for (int i = 0; i < 5; i++){
 
-Poisson;
-Th = adaptmesh(Th, u, err=error,hmin = hmin, hmax = hmax ,nbvx = 100000);
-Vh uErrorAbs = abs(u - uExact);
 error = error/2.0;
+
+Th = adaptmesh(Th, u, err=error,hmin = hmin, hmax = hmax ,nbvx = 100000);
+
+fespace Vh1(Th, P1);
+Vh1 u, v;
+fespace Vh2(Th, P2);
+Vh2 uExact = uExactFunc;
+
+solve Poisson(u,v) = 
+ int2d(Th)(
+		dx(u) * dx(v) + dy(u) * dy(v)
+	) 
+	- int2d(Th)(
+ 		f*v
+ 	)
+	- int1d(Th,labelCircle2)(
+		c*v
+	)
+/* - int1d(Th,labelCircle2)(
+	 	dx(uExact) * N.x * v + dy(uExact) * N.y * v
+	 )*/
+
+	+ on(labelCircle1 , u = u1);
+
+Vh2 uErrorAbs = abs(u - uExact);
+
+
 ofstream fout("Values_" + i + ".txt");
 
 for(real j = 0; j <= k; j=j+1){
@@ -87,6 +113,7 @@ real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
 cout << "||uErrorL2Norm||_L2 = " << uErrorL2Norm << endl;
 
 }
+
 int numBoun = Th.nbe;//the number of boundary element in Th
 int Border = labelCircle2;
 ofstream File("data.txt");
