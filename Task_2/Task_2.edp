@@ -1,0 +1,127 @@
+int n = 60; /*Partition*/
+
+func u1 = sin(1.); /*Dirichlet boundary condition on labelCircle*/
+func c = 2.0 * (x * N.x + y * N.y) * cos(x^2 + y^2);  /*Neumann condition on labelCircle2*/
+
+
+int labelCircle1 = 1; /* label of semicircle from pi/2 to 3.*pi/2 */
+int labelCircle2 = 2; /* label of  semicircle from 3.pi/2 to 5.*pi/2*/
+
+func uExactFunc = sin(x^2 + y^2); /*exact solution*/
+func f = -4.0 * (cos(x^2+y^2) - (x^2+y^2) * sin(x^2+y^2)); /*function on the right side*/
+
+/* defenition of semicircle1 boundary */
+border Gamma1(t = pi/2 , 3.* pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle1;
+}
+/* defenition of semicircle2 boundary */
+border Gamma2(t = 3.* pi/2, 5.* pi/2){
+	x = 1.0 * cos(t);
+ 	y = 1.0 * sin(t); 
+ 	label = labelCircle2;
+}
+
+mesh Th = buildmesh(Gamma1(n) + Gamma2(n));
+
+real error = 0.01;
+
+fespace Vh(Th, P1);
+Vh u, v;
+fespace Zh(Th, P2);
+Zh uExact = uExactFunc;
+
+solve Poisson(u,v) = 
+ int2d(Th)(
+		dx(u) * dx(v) + dy(u) * dy(v)
+	) 
+	- int2d(Th)(
+ 		f*v
+ 	)
+/*	- int1d(Th,labelCircle2)(
+		c*v
+	)*/
+ - int1d(Th,labelCircle2)(
+	 	dx(uExact) * N.x * v + dy(uExact) * N.y * v
+	 )
+
+	+ on(labelCircle1 , u = u1);
+
+
+string plotTitle = "Poisson Solution";
+
+real hmin = 0.01;
+real hmax = 0.1;
+
+
+real k = 50;// number of partitions of a line segment
+
+real x0 = -1; // start x-coord
+real y0 = -1; // start y-coord
+real x1 = 1; // end x-coord
+real y1 = 1; // end y-coord
+
+//plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+
+
+
+for (int i = 0; i < 5; i++){
+
+error = error/2.0;
+
+Th = adaptmesh(Th, u, err=error,hmin = hmin, hmax = hmax ,nbvx = 100000);
+
+fespace Vh1(Th, P1);
+Vh1 u, v;
+fespace Vh2(Th, P2);
+Vh2 uExact = uExactFunc;
+
+solve Poisson(u,v) = 
+ int2d(Th)(
+		dx(u) * dx(v) + dy(u) * dy(v)
+	) 
+	- int2d(Th)(
+ 		f*v
+ 	)
+	- int1d(Th,labelCircle2)(
+		c*v
+	)
+/* - int1d(Th,labelCircle2)(
+	 	dx(uExact) * N.x * v + dy(uExact) * N.y * v
+	 )*/
+
+	+ on(labelCircle1 , u = u1);
+
+Vh2 uErrorAbs = abs(u - uExact);
+
+
+ofstream fout("Values_" + i + ".txt");
+
+for(real j = 0; j <= k; j=j+1){
+	{
+		fout << j << " " << u(x0 + (x1-x0)*j/k, y0 + (y1-y0)*j/k)<< endl; // start-[1,0] end-[0,0]
+	}
+}
+
+plot(Th);
+
+//plot(Th, u, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+//plot(Th, uExact, wait = true, fill=true, dim=2, value=true, nbiso=30, cmm=plotTitle);
+
+real uErrorL2Norm = sqrt( int2d(Th)(uErrorAbs^2) );
+cout << "||uErrorL2Norm||_L2 = " << uErrorL2Norm << endl;
+
+}
+
+int numBoun = Th.nbe;//the number of boundary element in Th
+int Border = labelCircle2;
+ofstream File("data.txt");
+
+for( int i = 0; i < numBoun; ++i ){
+    if (Th.be(i).label == Border) { // if boundary element located on the our border then we write coord
+        real xm = (Th.be(i)[0].x + Th.be(i)[1].x)/2;
+        real ym = (Th.be(i)[0].y + Th.be(i)[1].y)/2;
+        File << i << ". middle coordinates:"<<"("<< xm << "," << ym << ");"<< " u(x, y) = "<< u(xm, ym) << endl;
+    }
+}
