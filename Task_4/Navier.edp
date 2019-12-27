@@ -62,7 +62,7 @@ border WallRigth(t = 0, R){
     y = t; 
     label = labelWallRigth;
 }
-
+ 
 mesh th = buildmesh(WallRigth(n/2) + WallLeft(-n/2)  + WallTop(-n/2) + WallBottom(n/2) + Obstacle(-n));
 plot(th);
 
@@ -78,7 +78,7 @@ varf navierstokes(ux, uy, p, uhx, uhy, ph)
     + mu* (Grad(u):Grad(uh))
     - p* div(uh)
     - ph* div(u)
-    - 1e-10 *p*ph
+    - 1e-10 *p*ph // stabilization term
     )
 
   + int2d(th) (
@@ -92,12 +92,15 @@ varf navierstokes(ux, uy, p, uhx, uhy, ph)
   + on(labelWallLeft, ux=uin, uy=0)
   + on(labelWallRigth, p = 0);
 
+[ux, uy, p]=[0, 0, 0]; //initial cond 
 
 matrix<real> NS = navierstokes(UPh, UPh, solver=sparsesolver);
 real[int] NSrhs = navierstokes(0, UPh);
 
+int[int] Order = [1];
 string folder = "solution";
 exec("mkdir " + folder);
+
 //Time loop
 for(int j = 0; j < T/dt; j++){
   [upx, upy, pp]=[ux, uy, p];
@@ -109,7 +112,7 @@ for(int j = 0; j < T/dt; j++){
   if (j%5 == 0){
   cout << j << endl;
 
-  savevtk(folder + ("/result" + j + ".vtk"),th,ux,uy);
+  savevtk(folder + ("/result" + j + ".vtk"), th, ux, uy, order = Order);
   
   }
 }
@@ -117,4 +120,4 @@ for(int j = 0; j < T/dt; j++){
 
 //CPU
 cout << " CPU = " << clock()-cpu << endl ;
-tabcpu = clock()-cpu;
+tabcpu = clock() - cpu;
