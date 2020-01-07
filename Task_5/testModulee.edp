@@ -1,0 +1,82 @@
+load "modulee"
+
+
+JsonFile j;
+JsonFile jss;
+
+string str="one.json";
+
+string str1="example1";
+string str2="example2";
+string str3="example3";
+string str4="example4";
+string tmp= "fd";
+
+real doub = 1.5;
+real temp = 0.0;
+int lng = 1;
+int teemp = 0;
+
+int[int] i = [1,2,3]; // for AddToJsonLong1dArray
+int[int] i1 (3); // for ExtractFromJSONLong1dArray
+
+real[int] v = [80.4,3.5,41.1]; // for AddToJsonDouble1dArray
+real[int] v1(3); // for ExtractFromJSONDouble1dArray
+
+real[int,int] vv = [[1.1,2.2,3.3],[4.4,5.5,6.6],[7.7,8.8,9.9]];// for AddToJsonDouble2dArray
+real[int,int] vv1 (3,3);// for ExtractFromJSONDouble2dArray
+
+real[int,int] vv2 (3,3);// for ExtractFromJSONDouble2dArray from file
+
+int[int,int] ii = [[1,2,3],[4,5,6],[7,8,9]];// for AddToJsonLong2dArray
+int[int,int] ii1 (3,3);// for ExtractFromJSONLong2dArray
+
+/*add and extract string*/
+AddToJsonString(j,str,str1);
+ExtractFromJSONString(j,str,tmp);
+cout << "String - "<< tmp << endl; 
+////////////////////////////////
+
+/*add and extract double*/
+AddToJsonDouble(j,str,doub);
+ExtractFromJSONDouble(j,str,temp);
+cout << "Double - " << temp << endl; 
+////////////////////////////////
+
+/*add and extract long*/
+AddToJsonLong(j,str,lng);
+ExtractFromJSONLong(j,str,teemp);
+cout <<"Long - "<< teemp << endl; 
+////////////////////////////////
+
+/*add and extract array_long*/
+AddToJsonLong1dArray(j,str1,i);
+ExtractFromJSONLong1dArray(j,str1,i1);
+cout <<"array_long - " << i1 << endl;
+///////////////////////////////
+
+/*add and extract array_double*/
+AddToJsonDouble1dArray(j,str2,v);
+ExtractFromJSONDouble1dArray(j,str2,v1);
+cout <<"array_double - " << v1 << endl;
+///////////////////////////////
+
+/*add and extract array2d_long*/
+AddToJsonLong2dArray(j,str3,ii);
+ExtractFromJSONLong2dArray(j,str3,ii1);
+cout <<"array2d_long - " << ii1 << endl;
+///////////////////////////////
+
+/*add and extract array2d_double*/
+AddToJsonDouble2dArray(j,str4,vv);
+ExtractFromJSONDouble2dArray(j,str4,vv1);
+cout <<"array2d_double - " << vv1 << endl;
+///////////////////////////////
+
+
+WriteJsonFile(j,str);
+
+ReadJson(jss,str);
+
+ExtractFromJSONDouble2dArray(jss,str4,vv2);
+cout <<"array2d_double from file - " << vv2 << endl;
