@@ -1,0 +1,10 @@
+load "mod"
+//ReadJson(j,t.json);
+
+cout<<"bla bla"<<endl;
+JsonFile msl;
+string str="34.json";
+string st=str;
+
+PrintLongRef(msl,str);
+ReadJson(msl,str);
