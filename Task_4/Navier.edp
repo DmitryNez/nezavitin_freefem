@@ -1,0 +1,123 @@
+load "iovtk"
+int n = 180;
+
+real rho = 500.;
+real mu = 0.1;
+int x0 = 5;
+int y0 = 3;
+int R = 6;
+int L = 30;
+
+real uin = 1;// y*(R-y)/(R*R);
+func fx = 0;
+func fy = 0;
+
+real dt = 0.1;
+real T = 50;
+
+real eps = 1e-3;
+
+//Macros
+macro div(u) (dx(u#x) + dy(u#y))//
+macro grad(u) [dx(u), dy(u)]//
+macro Grad(u) [grad(u#x), grad(u#y)]//
+
+//Time
+real cpu;
+real tabcpu;
+
+//mesh
+int labelObstacle = 1; 
+int labelWallRigth = 2;
+int labelWallLeft = 3;
+int labelWallTop = 4;
+int labelWallBottom = 5;
+// Mesh
+border Obstacle(t = 0, 2*pi){
+    x = x0 + cos(t); 
+    y = y0 + sin(t); 
+    label=labelObstacle;
+}
+
+border WallTop(t = 0, L){
+    x = t; 
+    y = R; 
+    label = labelWallTop;
+}
+
+border WallBottom(t = 0, L){
+    x = t; 
+    y = 0; 
+    label = labelWallBottom;
+}
+
+border WallLeft(t = 0, R){
+    x = 0; 
+    y = t; 
+    label = labelWallLeft;
+}
+
+border WallRigth(t = 0, R){
+    x = L; 
+    y = t; 
+    label = labelWallRigth;
+}
+ 
+mesh th = buildmesh(WallRigth(n/2) + WallLeft(-n/2)  + WallTop(-n/2) + WallBottom(n/2) + Obstacle(-n));
+plot(th);
+
+fespace UPh(th, [P2,P2,P1]);
+UPh [ux, uy, p];
+UPh [uhx, uhy, ph];
+UPh [upx, upy, pp];
+
+//Solve
+varf navierstokes(ux, uy, p, uhx, uhy, ph)
+  = int2d(th)(
+      rho/dt* [ux, uy]'* [uhx, uhy]
+    + mu* (Grad(u):Grad(uh))
+    - p* div(uh)
+    - ph* div(u)
+    - 1e-10 *p*ph // stabilization term
+    )
+
+  + int2d(th) (
+      [fx, fy]' * [uhx, uhy]
+    + rho/dt* [convect([upx, upy], -dt, upx), convect([upx, upy], -dt, upy)]'* [uhx, uhy]
+    )
+
+  + on(labelObstacle, ux=0, uy=0)
+  + on(labelWallBottom, ux=0, uy=0)
+  + on(labelWallTop, ux=0, uy=0)
+  + on(labelWallLeft, ux=uin, uy=0)
+  + on(labelWallRigth, p = 0);
+
+[ux, uy, p]=[0, 0, 0]; //initial cond 
+
+matrix<real> NS = navierstokes(UPh, UPh, solver=sparsesolver);
+real[int] NSrhs = navierstokes(0, UPh);
+
+int[int] Order = [1];
+string folder = "solution";
+exec("mkdir " + folder);
+
+//Time loop
+for(int j = 0; j < T/dt; j++){
+  [upx, upy, pp]=[ux, uy, p];
+
+  NSrhs = navierstokes(0, UPh);
+  ux[] = NS^-1 * NSrhs;
+  
+  plot( ux,uy, wait=0, cmm=j,value = 1, fill = true, nbiso = 50);
+  if (j%5 == 0){
+  cout << j << endl;
+
+  savevtk(folder + ("/result" + j + ".vtk"), th, ux, uy, order = Order);
+  
+  }
+}
+
+
+//CPU
+cout << " CPU = " << clock()-cpu << endl ;
+tabcpu = clock() - cpu;
